@@ -54,7 +54,15 @@ let
 
 
       configurePatched = configure // {
-        customRC = pluginRc + customRC + (configure.customRC or "");
+        packages.nix = {
+          start = lib.filter (f: f != null)
+            (map (x: if x.optional == false then x.plugin else null)
+              pluginsNormalized);
+          opt = lib.filter (f: f != null)
+            (map (x: if x.optional == true then x.plugin else null)
+              pluginsNormalized);
+        };
+        customRC = pluginRc + customRC;
       };
 
       # A function to get the configuration string (if any) from an element of 'plugins'
@@ -167,8 +175,11 @@ let
     assert withPython -> throw "Python2 support has been removed from neovim, please remove withPython and extraPythonPackages.";
 
     wrapNeovimUnstable neovim (res // {
-      wrapperArgs = lib.escapeShellArgs res.wrapperArgs + extraMakeWrapperArgs;
-      wrapRc = (configure != {});
+      wrapperArgs = lib.escapeShellArgs (
+        res.wrapperArgs ++ lib.optionals (configure != {}) [
+          "--add-flags" "-u ${writeText "init.vim" res.neovimRcContent}"
+        ]) + " " + extraMakeWrapperArgs
+      ;
   });
 in
 {
