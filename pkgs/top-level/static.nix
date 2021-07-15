@@ -117,6 +117,11 @@ in {
     gssSupport = false;
   };
 
+  libconfig = super.libconfig.overrideAttrs (old: {
+    # building the examples fails because they are linked dynamically
+    configureFlags = (old.configureFlags or [ ]) ++ [ "--disable-examples" ];
+  });
+
   ocaml-ng = self.lib.mapAttrs (_: set:
     if set ? overrideScope' then set.overrideScope' ocamlStaticAdapter else set
   ) super.ocaml-ng;
